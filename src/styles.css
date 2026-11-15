@@ -222,7 +222,6 @@ a { color: inherit; }
 .demo-success strong { color: #405d33; font-size: 10px; }
 .demo-success small { color: #777d6e; font-size: 8px; }
 .demo-pass { position: relative; overflow: hidden; padding: 20px; border: 1px solid #223c2b; background: #18291e; color: white; }
-.demo-pass::after { position: absolute; top: 79px; right: -31px; padding: 5px 36px; background: var(--lime); color: #20321e; content: "DEMO"; font: 8px var(--mono); letter-spacing: .12em; transform: rotate(45deg); }
 .pass-header { display: flex; align-items: center; justify-content: space-between; color: var(--lime); font: 8px var(--mono); letter-spacing: .11em; }
 .pass-kicker { margin: 26px 0 7px; color: #b6c4a9; font: 8px var(--mono); letter-spacing: .15em; }
 .demo-pass h2 { margin: 0; padding-right: 55px; color: white; font: 500 25px var(--display); overflow-wrap: anywhere; }
