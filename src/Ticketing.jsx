@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { clearAuthToken, getAuthToken, saveAuthToken } from "./authClient.js";
 
-const PRICE = 4000;
 const MAX_QUANTITY = 5;
 const MAX_RECEIPT_SIZE = 3 * 1024 * 1024;
 
@@ -103,7 +102,7 @@ function DigitalTicket({ ticket, order, event }) {
             </div>
             <div>
               <small>PRICE</small>
-              <strong>{money(PRICE)}</strong>
+            <strong>{money(event.ticketPrice)}</strong>
             </div>
             <div className="digital-ticket-venue">
               <small>VENUE</small>
@@ -215,7 +214,8 @@ export function OrderDialog({ open, initialMode = "details", onClose, event }) {
     return () => { active = false; };
   }, [open, session, step]);
 
-  const quantityTotal = quantity * PRICE;
+  const ticketPrice = Number(event.ticketPrice) || 0;
+  const quantityTotal = quantity * ticketPrice;
 
   async function authenticateBuyer(eventSubmit) {
     eventSubmit.preventDefault();
@@ -259,6 +259,10 @@ export function OrderDialog({ open, initialMode = "details", onClose, event }) {
   async function createOrder(eventSubmit) {
     eventSubmit.preventDefault();
     setError("");
+    if (!event.canAcceptTransfers || !event.bankDetails) {
+      setError("Ticket orders are temporarily unavailable. Please try again when the official transfer details are ready.");
+      return;
+    }
     setWorking(true);
     try {
       const { order: createdOrder } = await api("/orders", {
@@ -409,7 +413,7 @@ export function OrderDialog({ open, initialMode = "details", onClose, event }) {
         pdf.text(event.eventDate, contentX, detailsTop + 5);
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(14);
-        pdf.text(money(PRICE), contentX + 69, detailsTop + 7);
+        pdf.text(money(event.ticketPrice), contentX + 69, detailsTop + 7);
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8);
         pdf.text(
@@ -611,14 +615,14 @@ export function OrderDialog({ open, initialMode = "details", onClose, event }) {
         <section className="checkout-content">
           <div className="dialog-step">01 <span>YOUR TICKET</span></div>
           <h2 id="dialog-title">Let’s get you in.</h2>
-          <p className="dialog-subtitle">Create your order, transfer the total, then upload your receipt for verification.</p>
-          <div className="order-summary"><span className="summary-icon">□</span><span className="summary-name"><strong>Decembizzy · General admission</strong><small>Friday, December 11, 2026</small></span><strong>{money(PRICE)}</strong></div>
+          <p className="dialog-subtitle">Create your order, transfer the total, then upload your receipt for verification. Orders are for up to five admissions; every ticket uses the buyer’s name.</p>
+          <div className="order-summary"><span className="summary-icon">□</span><span className="summary-name"><strong>Decembizzy · General admission</strong><small>{event.eventDate}</small></span><strong>{money(ticketPrice)}</strong></div>
           <form onSubmit={createOrder}>
             <label className="input-label" htmlFor="buyer-name">Full name</label>
             <input id="buyer-name" className="text-input" autoComplete="name" minLength={2} maxLength={80} required value={buyer.name} onChange={(event) => setBuyer({ ...buyer, name: event.target.value })} />
             <label className="input-label" htmlFor="buyer-email">Account email</label>
             <input id="buyer-email" className="text-input" type="email" value={session?.user.email || ""} readOnly />
-            <div className="quantity-picker"><span><strong>Tickets</strong><small>{money(PRICE)} each</small></span><div className="quantity-controls"><button type="button" aria-label="Remove one ticket" disabled={quantity <= 1} onClick={() => setQuantity((current) => current - 1)}>−</button><output>{quantity}</output><button type="button" aria-label="Add one ticket" disabled={quantity >= MAX_QUANTITY} onClick={() => setQuantity((current) => current + 1)}>+</button></div></div>
+            <div className="quantity-picker"><span><strong>Tickets</strong><small>{money(ticketPrice)} each · up to five per order</small></span><div className="quantity-controls"><button type="button" aria-label="Remove one ticket" disabled={quantity <= 1} onClick={() => setQuantity((current) => current - 1)}>−</button><output>{quantity}</output><button type="button" aria-label="Add one ticket" disabled={quantity >= MAX_QUANTITY} onClick={() => setQuantity((current) => current + 1)}>+</button></div></div>
             <div className="order-total"><span>Total</span><strong>{money(quantityTotal)}</strong></div>
             <button className="primary-button dialog-action" type="submit" disabled={working || !event.canAcceptTransfers}>{working ? "Creating order…" : event.canAcceptTransfers ? "Create transfer order →" : "Ticket sales opening soon"}</button>
           </form>
@@ -653,8 +657,8 @@ export function OrderDialog({ open, initialMode = "details", onClose, event }) {
               {order.status === "rejected" && <div className="payment-error" role="alert">{message || "A reviewer requested a corrected receipt. Please upload the updated proof."}</div>}
               <form className="receipt-form" onSubmit={submitReceipt}>
                 <label className="input-label" htmlFor="receipt-file">Upload bank transfer receipt</label>
-                <input id="receipt-file" className="file-input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required onChange={(event) => setReceipt(event.target.files?.[0] || null)} />
-                <small className="file-help">JPG, PNG, WebP or PDF · maximum 3 MB.</small>
+                <input id="receipt-file" className="file-input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required onChange={(event) => { setReceipt(event.target.files?.[0] || null); setError(""); }} />
+                <small className="file-help">{receipt ? `${receipt.name} · ${(receipt.size / (1024 * 1024)).toFixed(2)} MB` : "JPG, PNG, WebP or PDF · maximum 3 MB. Choose a smaller file if it exceeds the limit."}</small>
                 <button className="primary-button dialog-action" type="submit" disabled={working || !event.bankDetails}>{working ? "Uploading…" : "Submit receipt for review"}</button>
               </form>
               <p className="receipt-disclaimer">Uploading proof does not confirm payment or issue a valid ticket. Wait for admin approval.</p>
@@ -704,7 +708,10 @@ export function AdminDashboard() {
   const [adminPassword, setAdminPassword] = useState("");
   const [adminSetupSecret, setAdminSetupSecret] = useState("");
   const [adminMode, setAdminMode] = useState("login");
-  const [busy, setBusy] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [checkInBusy, setCheckInBusy] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [verified, setVerified] = useState({});
@@ -727,7 +734,7 @@ export function AdminDashboard() {
   useEffect(() => {
     if (session?.user.role !== "admin") return;
     let active = true;
-    setBusy(true);
+    setOrdersLoading(true);
     setError("");
     api(`/admin/orders?status=${encodeURIComponent(filter)}`, {
       accessToken: session.access_token,
@@ -739,14 +746,14 @@ export function AdminDashboard() {
     }).catch((requestError) => {
       if (active) setError(requestError.message);
     }).finally(() => {
-      if (active) setBusy(false);
+      if (active) setOrdersLoading(false);
     });
     return () => { active = false; };
   }, [filter, session]);
 
   async function authenticateAdmin(event) {
     event.preventDefault();
-    setBusy(true);
+    setAuthBusy(true);
     setError("");
     try {
       const { session: newSession } = await api(
@@ -774,7 +781,7 @@ export function AdminDashboard() {
     } catch (requestError) {
       setError(requestError.message);
     } finally {
-      setBusy(false);
+      setAuthBusy(false);
     }
   }
 
@@ -795,7 +802,7 @@ export function AdminDashboard() {
   }
 
   async function reviewOrder(order, decision) {
-    setBusy(true);
+    setReviewBusy(true);
     setError("");
     setNote("");
     try {
@@ -818,13 +825,13 @@ export function AdminDashboard() {
     } catch (requestError) {
       setError(requestError.message);
     } finally {
-      setBusy(false);
+      setReviewBusy(false);
     }
   }
 
   async function checkIn(event) {
     event.preventDefault();
-    setBusy(true);
+    setCheckInBusy(true);
     setError("");
     setCheckInResult("");
     try {
@@ -833,12 +840,12 @@ export function AdminDashboard() {
         accessToken: session.access_token,
         body: { code: checkInCode },
       });
-      setCheckInResult(`${result.status === "checked_in" ? "Checked in" : "Already used"} · ${result.buyer_name} · ${result.order_number}`);
+      setCheckInResult({ status: result.status, text: `${result.buyer_name} · ${result.order_number}` });
       setCheckInCode("");
     } catch (requestError) {
       setError(requestError.message);
     } finally {
-      setBusy(false);
+      setCheckInBusy(false);
     }
   }
 
@@ -866,7 +873,7 @@ export function AdminDashboard() {
             </>
           )}
           {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="primary-button dialog-action" type="submit" disabled={busy}>{busy ? "Please wait…" : adminMode === "signup" ? "Create admin account →" : "Sign in →"}</button>
+          <button className="primary-button dialog-action" type="submit" disabled={authBusy}>{authBusy ? "Please wait…" : adminMode === "signup" ? "Create admin account →" : "Sign in →"}</button>
           <button className="back-button" type="button" onClick={() => { setAdminMode(adminMode === "signup" ? "login" : "signup"); setError(""); }}>
             {adminMode === "signup" ? "Back to admin sign in" : "First-time admin setup"}
           </button>
@@ -886,14 +893,14 @@ export function AdminDashboard() {
           <div><small>TICKETS ISSUED</small><strong>{summary.ticketsIssued}</strong></div>
           <div><small>CHECKED IN</small><strong>{summary.checkedIn}</strong></div>
         </div>
-        <nav className="admin-filters" aria-label="Filter orders">{["pending_review", "awaiting_transfer", "rejected", "approved", "all"].map((item) => <button key={item} type="button" className={filter === item ? "selected" : ""} onClick={() => setFilter(item)}>{item === "all" ? "All" : statusLabel(item)}</button>)}</nav>
+        <nav className="admin-filters" aria-label="Filter orders">{["pending_review", "awaiting_transfer", "rejected", "approved", "all"].map((item) => { const count = item === "pending_review" ? summary.pendingReview : item === "approved" ? summary.approvedOrders : item === "all" ? summary.totalOrders : null; return <button key={item} type="button" aria-pressed={filter === item} className={filter === item ? "selected" : ""} onClick={() => setFilter(item)}>{item === "all" ? "All" : statusLabel(item)}{count !== null ? ` (${count})` : ""}</button>; })}</nav>
         {error && <p className="form-error" role="alert">{error}</p>}{note && <p className="form-notice" role="status">{note}</p>}
-        <div className="check-in-panel"><form onSubmit={checkIn}><label className="input-label" htmlFor="check-in-code">Check in ticket by QR code value</label><div className="check-in-input"><input id="check-in-code" className="text-input" value={checkInCode} onChange={(event) => setCheckInCode(event.target.value)} required /><button className="primary-button" disabled={busy}>Check in</button></div></form>{checkInResult && <p className="form-notice" role="status">{checkInResult}</p>}</div>
-        {busy && <p className="admin-empty">Loading…</p>}
-        {!busy && orders.length === 0 && <p className="admin-empty">No orders in this view.</p>}
+        <div className="check-in-panel"><form onSubmit={checkIn}><label className="input-label" htmlFor="check-in-code">Check in ticket by QR code value</label><div className="check-in-input"><input id="check-in-code" className="text-input" autoComplete="off" autoCapitalize="characters" placeholder="Scan or enter ticket ID" value={checkInCode} onChange={(event) => setCheckInCode(event.target.value.trim())} required /><button className="primary-button" disabled={checkInBusy}>{checkInBusy ? "Checking…" : "Check in"}</button></div></form>{checkInResult && <p className={`check-in-result ${checkInResult.status === "checked_in" ? "success" : "used"}`} role="status"><strong>{checkInResult.status === "checked_in" ? "ENTRY APPROVED" : "ALREADY CHECKED IN"}</strong><span>{checkInResult.text}</span></p>}</div>
+        {ordersLoading && <p className="admin-empty" role="status">Loading orders…</p>}
+        {!ordersLoading && orders.length === 0 && <p className="admin-empty">No orders in this view.</p>}
         <div className="admin-orders">{orders.map((order) => <article className="admin-order" key={order.id}>
           <div className="admin-order-top"><div><strong>{order.orderNumber}</strong><span>{new Date(order.createdAt).toLocaleString()}</span></div><span className={`status-pill status-${order.status}`}>{statusLabel(order.status)}</span></div>
-          <div className="admin-order-buyer"><strong>{order.buyerName}</strong><span>{order.buyerEmail}</span><span>{order.quantity} × {money(PRICE)} · <b>{money(order.amount)}</b></span></div>
+          <div className="admin-order-buyer"><strong>{order.buyerName}</strong><span>{order.buyerEmail}</span><span>{order.quantity} × {money(order.amount / order.quantity)} · <b>{money(order.amount)}</b></span></div>
           {order.receiptUrl && (
             <div className="receipt-links">
               <a className="receipt-link" href={order.receiptUrl} target="_blank" rel="noreferrer">View receipt ↗</a>
@@ -904,7 +911,7 @@ export function AdminDashboard() {
           {order.status === "pending_review" && <div className="admin-review-controls">
             <label className="admin-confirm"><input type="checkbox" checked={verified[order.id] || false} onChange={(event) => setVerified({ ...verified, [order.id]: event.target.checked })} /><span>I matched this transfer against the official bank statement.</span></label>
             <label className="input-label" htmlFor={`review-note-${order.id}`}>Reviewer note</label><textarea id={`review-note-${order.id}`} className="text-input" rows="2" maxLength="500" placeholder="Required when rejecting" value={decisionNotes[order.id] || ""} onChange={(event) => setDecisionNotes({ ...decisionNotes, [order.id]: event.target.value })} />
-            <div className="review-actions"><button className="primary-button" type="button" disabled={busy || !verified[order.id]} onClick={() => reviewOrder(order, "approved")}>Approve & issue tickets</button><button className="secondary-button reject-button" type="button" disabled={busy || (decisionNotes[order.id] || "").trim().length < 3} onClick={() => reviewOrder(order, "rejected")}>Reject</button></div>
+            <div className="review-actions"><button className="primary-button" type="button" disabled={reviewBusy || !verified[order.id]} onClick={() => reviewOrder(order, "approved")}>{reviewBusy ? "Saving…" : "Approve & issue tickets"}</button><button className="secondary-button reject-button" type="button" disabled={reviewBusy || (decisionNotes[order.id] || "").trim().length < 3} onClick={() => reviewOrder(order, "rejected")}>Reject</button></div>
           </div>}
           {order.reviews?.length > 0 && <div className="review-history"><strong>Review audit</strong>{order.reviews.map((review) => <span key={`${review.reviewerEmail}-${review.createdAt}`}>{review.decision} by {review.reviewerEmail} · {new Date(review.createdAt).toLocaleString()}{review.note ? ` · ${review.note}` : ""}</span>)}</div>}
           {order.tickets?.length > 0 && <div className="issued-code-list"><strong>Issued tickets</strong>{order.tickets.map((ticket) => <span key={ticket.code}>{ticket.code} · {ticket.status}</span>)}</div>}

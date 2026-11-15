@@ -138,10 +138,13 @@ export function respondWithError(response, error) {
     message = "The server's MongoDB URL is invalid. Check the MONGODB_URL environment variable.";
   } else if (error?.name === "MongoServerSelectionError") {
     message = "The database is unreachable. Check the MongoDB URL and Atlas network access settings.";
+  } else if (error?.name === "MongoNetworkError" || error?.code === "ECONNRESET") {
+    message = "The database connection was interrupted. Check that MongoDB Atlas is online and allows connections from this network, then try again.";
   } else if (error?.code === 13 || error?.codeName === "Unauthorized") {
     message = "The database rejected the configured credentials. Check the MongoDB database user permissions.";
   }
-  return sendJson(response, 500, {
+  const status = error?.name === "MongoServerSelectionError" || error?.name === "MongoNetworkError" || error?.code === "ECONNRESET" ? 503 : 500;
+  return sendJson(response, status, {
     error: message,
   });
 }

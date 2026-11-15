@@ -17,6 +17,11 @@ async function initializeDatabase() {
     maxPoolSize: 5,
     minPoolSize: 0,
     maxIdleTimeMS: 30_000,
+    serverSelectionTimeoutMS: 10_000,
+    connectTimeoutMS: 10_000,
+    socketTimeoutMS: 30_000,
+    retryReads: true,
+    retryWrites: true,
   });
   try {
     await client.connect();

@@ -52,10 +52,6 @@ export default function App() {
     if (query.get("checkout") === "1") {
       setCheckoutMode(query.get("account") === "1" ? "account" : "details");
       setCheckoutOpen(true);
-    } else if (getAuthToken()) {
-      // Auto-open to account view when a saved session token is detected
-      setCheckoutMode("account");
-      setCheckoutOpen(true);
     }
   }, []);
 
@@ -68,7 +64,7 @@ export default function App() {
 
   return (
     <>
-      <div className="announcement">
+      <div id="top" className="announcement">
         <span className="announcement-pulse" />
         <span>PAUL UNIVERSITY AWKA</span>
         <span className="announcement-divider">✳</span>
@@ -135,7 +131,7 @@ export default function App() {
                 <div className="ticket-name">Your way in.</div>
                 <div className="ticket-inclusions"><span>✓ &nbsp;Entry to Decembizzy</span><span>✓ &nbsp;One unforgettable night</span><span>✓ &nbsp;A place with your people</span></div>
               </div>
-              <div className="ticket-price-block"><div><strong>₦4,000</strong><span>ONE TICKET · ONE FEE</span></div><button type="button" className="ticket-buy" onClick={() => openCheckout()}>Get ticket <Icon>↗</Icon></button></div>
+              <div className="ticket-price-block"><div><strong>{`₦${Number(event.ticketPrice).toLocaleString("en-NG")}`}</strong><span>ONE TICKET · ONE FEE</span></div><button type="button" className="ticket-buy" onClick={() => openCheckout()}>Get ticket <Icon>↗</Icon></button></div>
               <div className="ticket-card-foot"><span>PAUL UNIVERSITY · AWKA</span><span>Presented by Faculty of Law<br />in collaboration with SRC</span></div>
             </article>
           </div>
@@ -144,14 +140,14 @@ export default function App() {
 
         <section id="about" className="about-section page-wrap">
           <div className="about-label"><span className="section-index">03</span><span>THE PEOPLE BEHIND THE PARTY</span></div>
-          <div className="about-body"><h2>Made by us.<br /><em>For all of us.</em></h2><p>Open to everyone in Paul University, Decembizzy is a chance for our whole university community to take a breath, raise a glass, and make one more memory together.</p></div>
+          <div className="about-body"><h2>Made by us.<br /><em>For all of us.</em></h2><p>Decembizzy is a chance for the Paul University community to take a breath, raise a glass, and make one more memory together. Admission is open to Paul University students and guests.</p></div>
           <div className="presenter-card"><div className="presenter-monogram">PU<span>✳</span></div><div><small>PRESENTED BY</small><strong>Faculty of Law</strong><span className="presenter-collaboration"><strong>in collaboration with<br />Students’ Representative Council</strong></span></div></div>
         </section>
       </main>
 
       <footer className="site-footer">
         <div className="page-wrap footer-content"><Brand inverse /><p>Presented by the Faculty of Law in collaboration with the Students’ Representative Council.</p><span>PAUL UNIVERSITY · AWKA</span></div>
-        <div className="footer-bottom page-wrap"><span>DECEMBIZZY · A NIGHT TO REMEMBER</span><a href="#">Back to top ↑</a><span>{event.eventDate.toUpperCase()} · NWAKA BUILDING</span></div>
+        <div className="footer-bottom page-wrap"><span>DECEMBIZZY · A NIGHT TO REMEMBER</span><a href="#top">Back to top ↑</a><span>{event.eventDate.toUpperCase()} · NWAKA BUILDING</span></div>
       </footer>
 
       <OrderLookupButton hasToken={!!getAuthToken()} onClick={() => openCheckout("account")} />

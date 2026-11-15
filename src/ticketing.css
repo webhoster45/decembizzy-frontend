@@ -155,6 +155,14 @@
 .reject-button { color: #8b3c23; }
 .review-history,.issued-code-list { display: grid; gap: 5px; margin-top: 12px; padding: 10px; background: #f7f5ed; font-size: 8px; overflow-wrap: anywhere; }
 .issued-code-list span { font-family: "DM Mono",monospace; }
+.check-in-result { display: grid; gap: 4px; margin: 12px 0 0; padding: 13px; border: 2px solid; font-size: 13px; }
+.check-in-result strong { font: 700 14px "DM Mono",monospace; letter-spacing: .06em; }
+.check-in-result.success { border-color: #3f7b36; background: #e8f5df; color: #244b24; }
+.check-in-result.used { border-color: #b34d38; background: #fff0e9; color: #7a2b1d; }
+.file-help { font-size: 10px; }
+.admin-filters button, .admin-order-top > div > span, .admin-order-buyer > span,
+.admin-review-controls textarea, .review-history, .issued-code-list { font-size: 10px; }
+.input-label, .dialog-subtitle, .privacy-note, .receipt-disclaimer, .review-status p { font-size: 11px; }
 
 @media (max-width: 620px) {
   .checkout-content { padding: 20px 17px 14px; }
