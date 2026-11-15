@@ -5,8 +5,8 @@ import {
   respondWithError,
   sendJson,
   verifyReceiptUrl,
-} from "../../server/http.js";
-import { getDatabase, getReceiptsBucket } from "../../server/mongodb.js";
+} from "../../http.js";
+import { getDatabase, getReceiptsBucket } from "../../mongodb.js";
 
 const CONTENT_TYPES = new Set([
   "image/jpeg",

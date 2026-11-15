@@ -5,10 +5,10 @@ import {
   requireAdmin,
   respondWithError,
   sendJson,
-} from "../../server/http.js";
+} from "../../http.js";
 import { ObjectId } from "mongodb";
-import { getOrdersCollection } from "../../server/mongodb.js";
-import { getPublicBankDetails } from "../../server/config.js";
+import { getOrdersCollection } from "../../mongodb.js";
+import { getPublicBankDetails } from "../../config.js";
 
 export default async function handler(request, response) {
   if (request.method !== "POST") {

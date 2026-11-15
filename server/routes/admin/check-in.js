@@ -4,8 +4,8 @@ import {
   requireAdmin,
   respondWithError,
   sendJson,
-} from "../../server/http.js";
-import { getOrdersCollection } from "../../server/mongodb.js";
+} from "../../http.js";
+import { getOrdersCollection } from "../../mongodb.js";
 
 export default async function handler(request, response) {
   if (request.method !== "POST") {

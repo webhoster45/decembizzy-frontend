@@ -1,5 +1,5 @@
-import { deleteSession } from "../../server/auth.js";
-import { sendJson } from "../../server/http.js";
+import { deleteSession } from "../../auth.js";
+import { sendJson } from "../../http.js";
 
 function getBearerToken(request) {
   const authorization = request.headers.authorization || "";

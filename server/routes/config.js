@@ -1,5 +1,5 @@
-import { getPublicBankDetails } from "../server/config.js";
-import { requireMethod, sendJson } from "../server/http.js";
+import { getPublicBankDetails } from "../config.js";
+import { requireMethod, sendJson } from "../http.js";
 
 export default function handler(request, response) {
   if (!requireMethod(request, response, "GET")) return;

@@ -5,9 +5,9 @@ import {
   requireCustomer,
   respondWithError,
   sendJson,
-} from "../../server/http.js";
-import { getOrdersCollection } from "../../server/mongodb.js";
-import { getPublicBankDetails } from "../../server/config.js";
+} from "../../http.js";
+import { getOrdersCollection } from "../../mongodb.js";
+import { getPublicBankDetails } from "../../config.js";
 
 const UNIT_AMOUNT_KOBO = 400000;
 

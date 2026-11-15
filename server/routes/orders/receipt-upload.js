@@ -9,8 +9,8 @@ import {
   requireCustomer,
   respondWithError,
   sendJson,
-} from "../../server/http.js";
-import { getOrdersCollection, getReceiptsBucket } from "../../server/mongodb.js";
+} from "../../http.js";
+import { getOrdersCollection, getReceiptsBucket } from "../../mongodb.js";
 
 export const config = {
   api: { bodyParser: { sizeLimit: "4.5mb" } },

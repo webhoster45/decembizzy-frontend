@@ -5,7 +5,7 @@ import {
   getOrderByNumber,
   respondWithError,
   sendJson,
-} from "../../server/http.js";
+} from "../../http.js";
 
 export default async function handler(request, response) {
   if (request.method !== "GET") {

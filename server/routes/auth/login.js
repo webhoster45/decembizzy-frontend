@@ -5,13 +5,13 @@ import {
   isValidPassword,
   normalizeEmail,
   verifyCredentials,
-} from "../../server/auth.js";
+} from "../../auth.js";
 import {
   enforceRateLimit,
   getJsonBody,
   respondWithError,
   sendJson,
-} from "../../server/http.js";
+} from "../../http.js";
 
 export default async function handler(request, response) {
   if (request.method !== "POST") {

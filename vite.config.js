@@ -2,21 +2,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
-const API_ROUTES = {
-  "/api/config": "api/config.js",
-  "/api/auth/signup": "api/auth/signup.js",
-  "/api/auth/login": "api/auth/login.js",
-  "/api/auth/admin-signup": "api/auth/admin-signup.js",
-  "/api/auth/session": "api/auth/session.js",
-  "/api/auth/logout": "api/auth/logout.js",
-  "/api/orders": "api/orders/index.js",
-  "/api/orders/receipt-upload": "api/orders/receipt-upload.js",
-  "/api/admin/orders": "api/admin/orders.js",
-  "/api/admin/review": "api/admin/review.js",
-  "/api/admin/check-in": "api/admin/check-in.js",
-  "/api/admin/receipt": "api/admin/receipt.js",
-};
-
 const MAX_API_BODY_SIZE = 4.5 * 1024 * 1024;
 
 function localApiRoutes() {
@@ -30,22 +15,7 @@ function localApiRoutes() {
           return;
         }
 
-        let route = API_ROUTES[requestUrl.pathname];
-        let orderNumber;
-        if (!route) {
-          const orderMatch = requestUrl.pathname.match(/^\/api\/orders\/([^/]+)$/);
-          if (orderMatch) {
-            route = "api/orders/[orderNumber].js";
-            try {
-              orderNumber = decodeURIComponent(orderMatch[1]);
-            } catch {
-              response.statusCode = 400;
-              response.end(JSON.stringify({ error: "The order number is invalid." }));
-              return;
-            }
-          }
-        }
-
+        const route = requestUrl.pathname.startsWith("/api/") ? "api/[...path].js" : null;
         if (!route) {
           response.statusCode = 404;
           response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -55,7 +25,6 @@ function localApiRoutes() {
 
         try {
           const query = Object.fromEntries(requestUrl.searchParams.entries());
-          if (orderNumber) query.orderNumber = orderNumber;
           request.query = query;
 
           if (["POST", "PUT", "PATCH"].includes(request.method || "")) {
