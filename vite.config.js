@@ -15,7 +15,7 @@ function localApiRoutes() {
           return;
         }
 
-        const route = requestUrl.pathname.startsWith("/api/") ? "api/[...path].js" : null;
+        const route = requestUrl.pathname.startsWith("/api/") ? "api/index.js" : null;
         if (!route) {
           response.statusCode = 404;
           response.setHeader("Content-Type", "application/json; charset=utf-8");
