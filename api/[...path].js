@@ -29,7 +29,18 @@ const routes = {
 };
 
 export default async function handler(request, response) {
-  const pathname = new URL(request.url || "/", "http://localhost").pathname;
+  const requestPath = new URL(request.url || "/", "http://localhost").pathname;
+  const pathSegments = request.query?.path;
+  const catchAllPath = Array.isArray(pathSegments)
+    ? pathSegments.join("/")
+    : typeof pathSegments === "string"
+      ? pathSegments
+      : "";
+  const pathname = routes[requestPath]
+    ? requestPath
+    : catchAllPath
+      ? `/api/${catchAllPath.replace(/^\/+|\/+$/g, "")}`
+      : requestPath;
   let route = routes[pathname];
   if (!route) {
     const match = pathname.match(/^\/api\/orders\/([^/]+)$/);

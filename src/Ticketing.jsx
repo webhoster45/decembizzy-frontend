@@ -46,9 +46,9 @@ async function api(path, { method = "GET", body, key, accessToken } = {}) {
   });
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
-    throw new Error(
-      "The Decembizzy API is unavailable. Restart the development server from the project folder with `npm run dev`.",
-    );
+    throw new Error(import.meta.env.DEV
+      ? "The Decembizzy API did not return JSON. Restart the development server from the project folder with `npm run dev`."
+      : `The Decembizzy API returned an unexpected response (HTTP ${response.status}). Please try again or contact the organizers.`);
   }
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || "Something went wrong. Please try again.");
