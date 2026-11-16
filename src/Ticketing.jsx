@@ -653,7 +653,7 @@ export function OrderDialog({ open, initialMode = "details", initialOrderNumber 
             </div>
           )}
           {!event.bankDetails && <div className="event-setup-warning">The official bank details have not been configured. Do not send money to placeholders. Contact the organizers for the approved account.</div>}
-          <div className="fraud-warning" role="note"><strong>Payment verification</strong><span>Transfer alerts and screenshots are not proof that funds arrived. Every payment is checked against the official bank statement. Do not submit edited or fake receipts; tickets are issued only after funds are confirmed.</span></div>
+          <div className="fraud-warning" role="note"><strong>Payment verification</strong><span>Transfer alerts and screenshots are not proof that funds arrived. Every payment is checked against the official bank statement. Submitting a fake or edited receipt can get your account banned from buying tickets. Tickets are issued only after funds are confirmed.</span></div>
           <div className="buyer-details-preview"><span>ORDER FOR</span><strong>{order.buyerName}</strong><span>{order.quantity} {order.quantity === 1 ? "ticket" : "tickets"} · {money(order.amount)}</span></div>
           {order.status === "approved" ? (
             <div className="approved-tickets"><strong>Transfer approved — your ticket is ready.</strong><button className="primary-button dialog-action" type="button" disabled={working} onClick={downloadTickets}>{working ? "Preparing…" : "Download my ticket ↓"}</button></div>
