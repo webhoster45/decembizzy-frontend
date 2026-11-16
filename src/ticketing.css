@@ -58,6 +58,9 @@
 .admin-stats small { color: #777b71; font: 600 7px "DM Mono",monospace; letter-spacing: .08em; }
 .admin-stats strong { color: #17241d; font: 600 22px "Space Grotesk",sans-serif; }
 .event-setup-warning { margin-top: 13px; padding: 11px; border: 1px solid #ecd7ad; background: #fff5dc; color: #71592b; font-size: 9px; line-height: 1.6; }
+.fraud-warning { display: grid; gap: 5px; margin-top: 13px; padding: 12px; border: 1px solid #e3b56b; background: #fff3d4; color: #654918; font-size: 10px; line-height: 1.6; }
+.fraud-warning strong { color: #55380f; font-size: 11px; }
+.admin-fraud-warning { margin-block: 18px 10px; }
 .dialog-footer { display: flex; align-items: center; justify-content: center; padding: 11px; border-top: 1px solid #e8e5da; color: #898b80; font: 7px "DM Mono",monospace; letter-spacing: .1em; }
 .form-error,.form-notice { margin: 12px 0; padding: 10px; font-size: 9px; line-height: 1.6; }
 .form-error,.payment-error { border: 1px solid #ecc4b7; background: #fff0e9; color: #8b3c23; }
