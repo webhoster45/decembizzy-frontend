@@ -705,6 +705,7 @@ export function AdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [summary, setSummary] = useState({
     totalOrders: 0,
+    totalUsers: 0,
     pendingReview: 0,
     approvedOrders: 0,
     ticketsIssued: 0,
@@ -894,6 +895,7 @@ export function AdminDashboard() {
       <section className="admin-dashboard">
         <header className="admin-header"><div><div className="dialog-step">PAUL UNIVERSITY · AWKA</div><h1>Transfer review.</h1><p>Signed in as {session.user.email}</p></div><button className="secondary-button" type="button" onClick={signOutAdmin}>Sign out</button></header>
         <div className="admin-stats" aria-label="Event overview">
+          <div><small>TOTAL USERS</small><strong>{summary.totalUsers}</strong></div>
           <div><small>ORDERS</small><strong>{summary.totalOrders}</strong></div>
           <div><small>NEEDS REVIEW</small><strong>{summary.pendingReview}</strong></div>
           <div><small>APPROVED</small><strong>{summary.approvedOrders}</strong></div>

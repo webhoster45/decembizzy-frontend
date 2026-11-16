@@ -53,7 +53,7 @@
 .account-order > span:first-child { min-width: 0; display: grid; gap: 5px; }
 .account-order > span:first-child strong { font: 600 9px "DM Mono",monospace; overflow-wrap: anywhere; }
 .account-order > span:first-child small { color: #777b71; font-size: 8px; }
-.admin-stats { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 9px; margin-top: 19px; }
+.admin-stats { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 9px; margin-top: 19px; }
 .admin-stats > div { min-height: 75px; display: grid; align-content: space-between; gap: 12px; padding: 12px; border: 1px solid #e1ded2; background: #fffdf6; }
 .admin-stats small { color: #777b71; font: 600 7px "DM Mono",monospace; letter-spacing: .08em; }
 .admin-stats strong { color: #17241d; font: 600 22px "Space Grotesk",sans-serif; }

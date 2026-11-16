@@ -5,7 +5,7 @@ import {
   respondWithError,
   sendJson,
 } from "../../http.js";
-import { getOrdersCollection } from "../../mongodb.js";
+import { getOrdersCollection, getUsersCollection } from "../../mongodb.js";
 
 export default async function handler(request, response) {
   if (request.method !== "GET") {
@@ -33,7 +33,7 @@ export default async function handler(request, response) {
 
     const ordersCollection = await getOrdersCollection();
     const filter = requestedStatus === "all" ? {} : { status: requestedStatus };
-    const [orders, totalOrders, pendingReview, approvedOrders, ticketCounts, checkInCounts] =
+    const [orders, totalOrders, pendingReview, approvedOrders, ticketCounts, checkInCounts, totalUsers] =
       await Promise.all([
         ordersCollection.find(filter).sort({ createdAt: -1 }).limit(100).toArray(),
         ordersCollection.countDocuments(),
@@ -45,6 +45,7 @@ export default async function handler(request, response) {
         ordersCollection
           .aggregate([{ $unwind: "$checkIns" }, { $count: "count" }])
           .toArray(),
+        (await getUsersCollection()).countDocuments(),
       ]);
 
     const items = orders.map((order) => ({
@@ -83,6 +84,7 @@ export default async function handler(request, response) {
       orders: items,
       summary: {
         totalOrders,
+        totalUsers,
         pendingReview,
         approvedOrders,
         ticketsIssued: ticketCounts[0]?.count || 0,
