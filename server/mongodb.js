@@ -54,14 +54,21 @@ async function initializeDatabase() {
         { unique: true, name: "users_email_unique" },
       ),
       database.collection("sessions").createIndex(
-        { expiresAt: 1 },
-        { expireAfterSeconds: 0, name: "sessions_expiry" },
-      ),
-      database.collection("sessions").createIndex(
         { userId: 1 },
         { name: "sessions_user_id" },
       ),
     ]);
+    const sessions = database.collection("sessions");
+    const expiringSession = await sessions.findOne(
+      { expiresAt: { $type: "date" } },
+      { projection: { _id: 1 } },
+    );
+    if (expiringSession) {
+      await sessions.updateMany(
+        { expiresAt: { $exists: true } },
+        { $unset: { expiresAt: "" } },
+      );
+    }
     return database;
   } catch (error) {
     await client.close().catch(() => undefined);

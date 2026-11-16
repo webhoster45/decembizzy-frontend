@@ -5,7 +5,7 @@ The established public event landing page is unchanged. The application uses a R
 ## Accounts and access
 
 - Attendees register with an email address and password, then can sign in immediately. No inbox confirmation or email delivery is part of authentication.
-- Passwords are hashed with Node.js `scrypt`; passwords are never stored in plain text. Opaque random session tokens are stored as HMAC hashes and expire after 30 days.
+- Passwords are hashed with Node.js `scrypt`; passwords are never stored in plain text. Opaque random session tokens are stored as HMAC hashes and remain valid until the user signs out or the session is revoked.
 - The `/admin` page has separate admin sign-in and first-time setup. Creating an admin account requires the private `ADMIN_SECRET` setup key. Create the three organizer accounts, then remove `ADMIN_SECRET` from the deployment environment; existing admin accounts can continue signing in.
 - Admin actions check the account's stored `admin` role on the server. An attendee account cannot review payments or check in tickets.
 - Email and password recovery is not available yet. Since accounts are not email-verified, users must use a valid email address they control and keep their password safe.
@@ -14,7 +14,7 @@ The established public event landing page is unchanged. The application uses a R
 
 Each `orders` document embeds its bounded ticket array, review history, and check-in audit entries so those records can be read and updated atomically. The document includes buyer account ID/email, quantity, the fixed ₦4,000 unit price and total in kobo, status, receipt metadata, and timestamps.
 
-Receipt binaries are stored in MongoDB GridFS in the `receipts` bucket. Admin receipt links are signed and expire after five minutes. The `users` collection stores password hashes and roles; `sessions` stores expiring hashed tokens; `rateLimits` stores HMAC-keyed counters with TTL expiry.
+Receipt binaries are stored in MongoDB GridFS in the `receipts` bucket. Admin receipt links are signed and expire after five minutes. The `users` collection stores password hashes and roles; `sessions` stores hashed tokens until sign-out or revocation; `rateLimits` stores HMAC-keyed counters with TTL expiry.
 
 The app creates the following indexes on its first database connection:
 
@@ -22,7 +22,7 @@ The app creates the following indexes on its first database connection:
 - buyer account and order creation date
 - order status and creation date
 - unique user email
-- session and rate-limit expiry
+- rate-limit expiry
 - session user ID
 
 Approval atomically updates an order, appends the reviewer audit entry, and issues one unique ticket code per admission. Check-in atomically changes only a valid ticket, preventing a second scan from admitting it again. Ticket arrays are limited to five per order.

@@ -12,7 +12,6 @@ import {
 } from "./mongodb.js";
 
 const scrypt = promisify(scryptCallback);
-const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 const PASSWORD_OPTIONS = {
   N: 32768,
   r: 8,
@@ -94,16 +93,14 @@ function hashSessionToken(token) {
 
 export async function createSession(user) {
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
   await (await getSessionsCollection()).insertOne({
     _id: hashSessionToken(token),
     userId: user._id,
-    expiresAt,
     createdAt: new Date(),
   });
   return {
     access_token: token,
-    expires_at: expiresAt.toISOString(),
+    expires_at: null,
     user: formatUser(user),
   };
 }
@@ -112,7 +109,6 @@ export async function getSessionUser(token) {
   if (!token) return null;
   const session = await (await getSessionsCollection()).findOne({
     _id: hashSessionToken(token),
-    expiresAt: { $gt: new Date() },
   });
   if (!session) return null;
   const user = await (await getUsersCollection()).findOne({ _id: session.userId });

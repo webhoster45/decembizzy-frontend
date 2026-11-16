@@ -29,6 +29,7 @@ export default function App() {
   const [checkoutMode, setCheckoutMode] = useState("details");
   const [event, setEvent] = useState(FALLBACK_EVENT);
   const [customer, setCustomer] = useState(null);
+  const [adminUser, setAdminUser] = useState(false);
   const [authChecking, setAuthChecking] = useState(!!getAuthToken());
   const [selectedOrderNumber, setSelectedOrderNumber] = useState("");
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
@@ -65,6 +66,7 @@ export default function App() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Session expired.");
       if (active && result.user?.role === "customer") setCustomer(result.user);
+      if (active && result.user?.role === "admin") setAdminUser(true);
     }).catch(() => {
       clearAuthToken();
     }).finally(() => {
@@ -92,7 +94,8 @@ export default function App() {
 
   function handleAuthenticated(user) {
     if (user?.role === "customer") setCustomer(user);
-    if (checkoutMode === "account") setCheckoutOpen(false);
+    if (user?.role === "admin") setAdminUser(true);
+    setCheckoutOpen(false);
   }
 
   async function signOut() {
@@ -117,6 +120,8 @@ export default function App() {
   }
 
   if (authChecking) return <main className="buyer-dashboard page-wrap"><p className="admin-empty" role="status">Loading your Decembizzy account…</p></main>;
+
+  if (adminUser) return <AdminDashboard />;
 
   if (customer) {
     return <>
