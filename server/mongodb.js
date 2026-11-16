@@ -144,6 +144,7 @@ export function formatOrder(order) {
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
     receiptUploadedAt: order.receiptUploadedAt || null,
+    hasReceipt: Boolean(order.receiptPath),
     tickets: (order.tickets || []).map((ticket) => ({
       code: ticket.code,
       status: ticket.status,

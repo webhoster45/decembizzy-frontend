@@ -138,7 +138,7 @@ function statusLabel(status) {
   }[status] || status;
 }
 
-export function OrderDialog({ open, initialMode = "details", onClose, event }) {
+export function OrderDialog({ open, initialMode = "details", initialOrderNumber = "", onClose, onAuthenticated, event }) {
   const dialogRef = useRef(null);
   const [step, setStep] = useState("login");
   const [quantity, setQuantity] = useState(1);
@@ -202,7 +202,11 @@ export function OrderDialog({ open, initialMode = "details", onClose, event }) {
     setError("");
     api("/orders", { accessToken: session.access_token })
       .then(({ orders: loadedOrders }) => {
-        if (active) setOrders(loadedOrders);
+        if (active) {
+          setOrders(loadedOrders);
+          const selected = initialOrderNumber && loadedOrders.find((item) => item.orderNumber === initialOrderNumber);
+          if (selected) openOrder(selected);
+        }
       })
       .catch((requestError) => {
         if (active) setError(requestError.message);
@@ -212,7 +216,7 @@ export function OrderDialog({ open, initialMode = "details", onClose, event }) {
       });
 
     return () => { active = false; };
-  }, [open, session, step]);
+  }, [initialOrderNumber, open, session, step]);
 
   const ticketPrice = Number(event.ticketPrice) || 0;
   const quantityTotal = quantity * ticketPrice;
@@ -231,6 +235,7 @@ export function OrderDialog({ open, initialMode = "details", onClose, event }) {
         });
         saveAuthToken(newSession.access_token);
         setSession(newSession);
+        onAuthenticated?.(newSession.user);
         setStep(initialMode === "account" ? "account" : "details");
       } else {
         const { session: newSession } = await api("/auth/login", {
@@ -239,6 +244,7 @@ export function OrderDialog({ open, initialMode = "details", onClose, event }) {
         });
         saveAuthToken(newSession.access_token);
         setSession(newSession);
+        onAuthenticated?.(newSession.user);
         setStep(initialMode === "account" ? "account" : "details");
       }
     } catch (requestError) {
@@ -918,6 +924,106 @@ export function AdminDashboard() {
         </article>)}</div>
       </section>
     </AdminShell>
+  );
+}
+
+export function BuyerDashboard({ user, event, refreshKey, onSignOut, onNewTicket, onViewOrder }) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
+  const [receipt, setReceipt] = useState(null);
+  const [receiptLoading, setReceiptLoading] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    api("/orders", { accessToken: getAuthToken() })
+      .then(({ orders: loadedOrders }) => { if (active) setOrders(loadedOrders); })
+      .catch((loadError) => { if (active) setError(loadError.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [refreshKey]);
+
+  useEffect(() => () => {
+    if (receipt?.url) URL.revokeObjectURL(receipt.url);
+  }, [receipt]);
+
+  async function showReceipt(order) {
+    setError("");
+    setReceiptLoading(order.orderNumber);
+    try {
+      const response = await fetch(`/api/orders/receipt?orderNumber=${encodeURIComponent(order.orderNumber)}`, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type") || "";
+        const result = contentType.includes("application/json") ? await response.json() : {};
+        throw new Error(result.error || "Could not open this receipt. Please try again.");
+      }
+      const blob = await response.blob();
+      setReceipt({ url: URL.createObjectURL(blob), mimeType: blob.type, orderNumber: order.orderNumber });
+    } catch (receiptError) {
+      setError(receiptError.message);
+    } finally {
+      setReceiptLoading("");
+    }
+  }
+
+  async function signOut() {
+    setSigningOut(true);
+    try {
+      await onSignOut();
+    } catch (signOutError) {
+      setError(signOutError.message || "Could not sign out. Please try again.");
+      setSigningOut(false);
+    }
+  }
+
+  const ticketsIssued = orders.reduce((count, order) => count + (order.tickets?.length || 0), 0);
+  const pendingOrders = orders.filter((order) => ["awaiting_transfer", "pending_review", "rejected"].includes(order.status)).length;
+
+  return (
+    <main className="buyer-dashboard">
+      <header className="buyer-dashboard-header page-wrap">
+        <a className="admin-brand" href="/" aria-label="Decembizzy home">DECEMBIZZY <span>·</span> MY TICKETS</a>
+        <button className="secondary-button" type="button" disabled={signingOut} onClick={signOut}>{signingOut ? "Signing out…" : "Sign out"}</button>
+      </header>
+      <section className="buyer-welcome page-wrap">
+        <div><div className="dialog-step">YOUR DECEMBIZZY ACCOUNT</div><h1>Welcome back.</h1><p>{user.email}</p></div>
+        <button className="primary-button" type="button" onClick={onNewTicket}>Get a new ticket <span aria-hidden="true">→</span></button>
+      </section>
+      <section className="buyer-summary page-wrap" aria-label="Your ticket summary">
+        <div><small>ORDERS</small><strong>{orders.length}</strong></div>
+        <div><small>TICKETS READY</small><strong>{ticketsIssued}</strong></div>
+        <div><small>ORDERS IN PROGRESS</small><strong>{pendingOrders}</strong></div>
+      </section>
+
+      <section className="buyer-orders page-wrap" aria-labelledby="buyer-orders-title">
+        <div className="buyer-section-heading"><div><div className="dialog-step">YOUR HISTORY</div><h2 id="buyer-orders-title">Orders & tickets</h2></div><span>{orders.length} {orders.length === 1 ? "order" : "orders"}</span></div>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        {loading && <p className="admin-empty" role="status">Loading your orders…</p>}
+        {!loading && orders.length === 0 && <div className="buyer-empty"><strong>No tickets yet.</strong><p>Your orders, payment receipts, and approved tickets will show up here.</p><button className="primary-button" type="button" onClick={onNewTicket}>Get your first ticket →</button></div>}
+        <div className="buyer-order-list">
+          {orders.map((order) => (
+            <article className="buyer-order-card" key={order.id}>
+              <div className="buyer-order-top"><div><strong>{order.orderNumber}</strong><small>{new Date(order.createdAt).toLocaleDateString("en-NG", { dateStyle: "medium" })}</small></div><span className={`status-pill status-${order.status}`}>{statusLabel(order.status)}</span></div>
+              <div className="buyer-order-meta"><span>{order.quantity} {order.quantity === 1 ? "ticket" : "tickets"}</span><strong>{money(order.amount)}</strong><span>{event.eventDate}</span></div>
+              {order.tickets?.length > 0 && <div className="buyer-ticket-list"><h3>Approved tickets</h3>{order.tickets.map((ticket, index) => <div className="buyer-ticket-row" key={ticket.code}><span><small>TICKET {index + 1} · {ticket.status === "checked_in" ? "CHECKED IN" : "READY"}</small><strong>{ticket.code}</strong></span><button className="secondary-button" type="button" onClick={() => onViewOrder(order.orderNumber)}>View ticket & download PDF</button></div>)}</div>}
+              <div className="buyer-order-actions">
+                {order.hasReceipt && <button className="secondary-button" type="button" disabled={receiptLoading === order.orderNumber} onClick={() => showReceipt(order)}>{receiptLoading === order.orderNumber ? "Opening receipt…" : "View submitted receipt"}</button>}
+                {order.status === "awaiting_transfer" || order.status === "rejected" ? <button className="secondary-button" type="button" onClick={() => onViewOrder(order.orderNumber)}>{order.status === "rejected" ? "Update receipt" : "Continue payment"}</button> : null}
+                {order.status === "pending_review" && <span className="buyer-review-note">Receipt received · awaiting organizer review</span>}
+              </div>
+              {order.receiptUploadedAt && <small className="buyer-receipt-date">Receipt submitted {new Date(order.receiptUploadedAt).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}</small>}
+              {receipt?.orderNumber === order.orderNumber && <div className="buyer-receipt-preview"><div><strong>Receipt for {order.orderNumber}</strong><span><a href={receipt.url} download={`decembizzy-${order.orderNumber}-receipt`}>Download receipt</a> · <button className="back-button" type="button" onClick={() => setReceipt(null)}>Close</button></span></div>{receipt.mimeType === "application/pdf" ? <iframe title={`Submitted receipt for ${order.orderNumber}`} src={receipt.url} /> : <img src={receipt.url} alt={`Submitted receipt for ${order.orderNumber}`} />}</div>}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <footer className="buyer-dashboard-footer"><span>DECEMBIZZY · PAUL UNIVERSITY, AWKA</span><span>{event.eventDate}</span></footer>
+    </main>
   );
 }
 

@@ -7,6 +7,7 @@ import session from "../server/routes/auth/session.js";
 import logout from "../server/routes/auth/logout.js";
 import orders from "../server/routes/orders/index.js";
 import receiptUpload from "../server/routes/orders/receipt-upload.js";
+import orderReceipt from "../server/routes/orders/receipt.js";
 import orderByNumber from "../server/routes/orders/[orderNumber].js";
 import adminOrders from "../server/routes/admin/orders.js";
 import review from "../server/routes/admin/review.js";
@@ -22,6 +23,7 @@ const routes = {
   "/api/auth/logout": logout,
   "/api/orders": orders,
   "/api/orders/receipt-upload": receiptUpload,
+  "/api/orders/receipt": orderReceipt,
   "/api/admin/orders": adminOrders,
   "/api/admin/review": review,
   "/api/admin/check-in": checkIn,

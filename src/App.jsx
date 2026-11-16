@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { AdminDashboard, OrderDialog, OrderLookupButton } from "./Ticketing.jsx";
-import { getAuthToken } from "./authClient.js";
+import { AdminDashboard, BuyerDashboard, OrderDialog, OrderLookupButton } from "./Ticketing.jsx";
+import { clearAuthToken, getAuthToken } from "./authClient.js";
 import "./ticketing.css";
 
 const FALLBACK_EVENT = {
@@ -28,6 +28,10 @@ export default function App() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState("details");
   const [event, setEvent] = useState(FALLBACK_EVENT);
+  const [customer, setCustomer] = useState(null);
+  const [authChecking, setAuthChecking] = useState(!!getAuthToken());
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState("");
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   useEffect(() => {
     if (window.location.pathname === "/admin") return;
     let active = true;
@@ -48,6 +52,29 @@ export default function App() {
 
   useEffect(() => {
     if (window.location.pathname.startsWith("/admin")) return;
+    const token = getAuthToken();
+    if (!token) {
+      setAuthChecking(false);
+      return;
+    }
+    let active = true;
+    fetch("/api/auth/session", {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }).then(async (response) => {
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Session expired.");
+      if (active && result.user?.role === "customer") setCustomer(result.user);
+    }).catch(() => {
+      clearAuthToken();
+    }).finally(() => {
+      if (active) setAuthChecking(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (window.location.pathname.startsWith("/admin")) return;
     const query = new URLSearchParams(window.location.search);
     if (query.get("checkout") === "1") {
       setCheckoutMode(query.get("account") === "1" ? "account" : "details");
@@ -59,7 +86,43 @@ export default function App() {
 
   function openCheckout(mode = "details") {
     setCheckoutMode(mode);
+    setSelectedOrderNumber("");
     setCheckoutOpen(true);
+  }
+
+  function handleAuthenticated(user) {
+    if (user?.role === "customer") setCustomer(user);
+    if (checkoutMode === "account") setCheckoutOpen(false);
+  }
+
+  async function signOut() {
+    const token = getAuthToken();
+    try {
+      if (token) await fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+    } finally {
+      clearAuthToken();
+      setCustomer(null);
+    }
+  }
+
+  function viewOrder(orderNumber) {
+    setSelectedOrderNumber(orderNumber);
+    setCheckoutMode("account");
+    setCheckoutOpen(true);
+  }
+
+  function closeCheckout() {
+    setCheckoutOpen(false);
+    setDashboardRefreshKey((key) => key + 1);
+  }
+
+  if (authChecking) return <main className="buyer-dashboard page-wrap"><p className="admin-empty" role="status">Loading your Decembizzy account…</p></main>;
+
+  if (customer) {
+    return <>
+      <BuyerDashboard user={customer} event={event} refreshKey={dashboardRefreshKey} onSignOut={signOut} onNewTicket={() => openCheckout("details")} onViewOrder={viewOrder} />
+      <OrderDialog open={checkoutOpen} initialMode={checkoutMode} initialOrderNumber={selectedOrderNumber} onClose={closeCheckout} onAuthenticated={handleAuthenticated} event={event} />
+    </>;
   }
 
   return (
@@ -151,7 +214,7 @@ export default function App() {
       </footer>
 
       <OrderLookupButton hasToken={!!getAuthToken()} onClick={() => openCheckout("account")} />
-      <OrderDialog open={checkoutOpen} initialMode={checkoutMode} onClose={() => setCheckoutOpen(false)} event={event} />
+      <OrderDialog open={checkoutOpen} initialMode={checkoutMode} onClose={closeCheckout} onAuthenticated={handleAuthenticated} event={event} />
     </>
   );
 }
